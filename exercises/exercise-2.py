@@ -10,6 +10,8 @@ I = np.pi / 4  # true value
 
 N_max = 10000  # go up to 10,000 samples
 
+EMPIRICAL = True
+
 U = np.random.uniform(0, 1, N_max)
 I_est = np.zeros(N_max - 1)  # this is longer than we need
 I_var = np.zeros(N_max - 1)
@@ -24,8 +26,8 @@ K = np.array([])
 
 for N in range(1, N_max, 5):
 
-    I_est[k] = 0  # Your mean estimate here
-    I_var[k] = 0  # Your variance estimate here
+    I_est[k] = np.sum(phi(U[:N])) / N
+    I_var[k] = np.sum((phi(U[:N]) - (I_est[k] if EMPIRICAL else I)) ** 2) / N**2
 
     k = k + 1  # We index estimators with k as we jump N by 5
     K = np.append(K, N)
