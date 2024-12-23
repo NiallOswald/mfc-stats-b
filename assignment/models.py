@@ -24,7 +24,7 @@ class Model:
 
 
 class ModelIterator:
-    """An iterator that generates state and observation pairs from a state space model."""
+    """An iterator that generates state and observations from a state space model."""
 
     def __init__(self, model: Model):
         self.model = model
