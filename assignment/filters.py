@@ -100,11 +100,13 @@ class ParticleFilter(Filter):
         )
 
         # Calculate weights
+        delta_obs = y[:, np.newaxis] - H @ x_particles_pred
         log_w = -0.5 * np.einsum(
-            "ij,jk,ki->i",
-            (y[:, np.newaxis] - H @ x_particles_pred).T,
+            "ji,jk,ki->i",
+            delta_obs,
             np.linalg.inv(R),
-            y[:, np.newaxis] - H @ x_particles_pred,
+            delta_obs,
+            optimize=True,
         )
 
         W = np.exp(log_w - np.max(log_w))
