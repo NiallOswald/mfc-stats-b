@@ -23,6 +23,7 @@ class Filter(ABC):
 
     @classmethod
     def plot(cls, model: Model, max_iter: int, *args, save_fig: bool = False):
+        """Plot the trajectory, observations, and filter estimate."""
         model_iter = iter(model)
         cls_filter = cls(model, *args)
 
@@ -90,6 +91,7 @@ class ParticleFilter(Filter):
 
         A, Q, H, R = self.model.A, self.model.Q, self.model.H, self.model.R
 
+        # Sample
         x_particles_pred = (
             A @ self.x_particles
             + self.rng.multivariate_normal(
@@ -97,6 +99,7 @@ class ParticleFilter(Filter):
             ).T
         )
 
+        # Calculate weights
         log_w = -0.5 * np.einsum(
             "ij,jk,ki->i",
             (y[:, np.newaxis] - H @ x_particles_pred).T,
@@ -110,6 +113,7 @@ class ParticleFilter(Filter):
 
         x_est = np.sum(w * x_particles_pred, axis=1)
 
+        # Resample
         self.x_particles = x_particles_pred[
             :, self.rng.choice(self.n_particles, self.n_particles, p=w)
         ]
