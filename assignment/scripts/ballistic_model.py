@@ -43,7 +43,7 @@ def main():
         model,
         MAX_ITER,
         np.random.multivariate_normal(
-            np.array([0.0, 0.0, -10.0, -10.0]),
+            model.x_0,
             0.1 * np.eye(4),
             N_PARTICLES,
         ).T,
