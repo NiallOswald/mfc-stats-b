@@ -71,3 +71,47 @@ class KalmanFilter(Filter):
         self.V = V_pred - K @ H @ V_pred
 
         return self.mu, self.V
+
+
+class ParticleFilter(Filter):
+    """A particle filter implementation for state space models."""
+
+    def __init__(self, model: Model, particles_init: np.ndarray):
+        """Initialise the particle filter."""
+        self.x_particles = particles_init
+        self.n_particles = particles_init.shape[1]
+
+        self.log_w = np.zeros(self.n_particles)
+
+        super().__init__(model)
+
+    def __next__(self):
+        _, y = next(self._model_iter)
+
+        A, Q, H, R = self.model.A, self.model.Q, self.model.H, self.model.R
+
+        x_particles_pred = (
+            A @ self.x_particles
+            + self.rng.multivariate_normal(
+                np.zeros(self.x_particles.shape[0]), Q, self.n_particles
+            ).T
+        )
+
+        log_w = -0.5 * np.einsum(
+            "ij,jk,ki->i",
+            (y[:, np.newaxis] - H @ x_particles_pred).T,
+            np.linalg.inv(R),
+            y[:, np.newaxis] - H @ x_particles_pred,
+        )
+
+        W = np.exp(log_w - np.max(log_w))
+
+        w = W / np.sum(W)
+
+        x_est = np.sum(w * x_particles_pred, axis=1)
+
+        self.x_particles = x_particles_pred[
+            :, self.rng.choice(self.n_particles, self.n_particles, p=w)
+        ]
+
+        return x_est, self.x_particles
