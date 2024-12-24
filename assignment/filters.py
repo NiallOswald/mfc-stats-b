@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from .models import Model
 from abc import ABC, abstractmethod
+from scipy.stats import norm
 
 
 class Filter(ABC):
@@ -46,6 +47,26 @@ class Filter(ABC):
 
         plt.show()
 
+    @classmethod
+    def likelihood(cls, true_model: Model, model: Model, max_iter: int, *args):
+        """Compute the log likelihood."""
+        true_model_iter = iter(true_model)
+        cls_filter = cls(model, *args)
+
+        log_li = 0
+        for i in range(max_iter):
+            _, y = next(true_model_iter)
+            mu_li, var_li = cls_filter._marginal()
+            log_li += np.log(norm(y, mu_li, var_li))
+            next(cls_filter)
+
+        return log_li
+
+    @abstractmethod
+    def _marginal(self):
+        """Return the mean and variance of the marginal distribution."""
+        pass
+
 
 class KalmanFilter(Filter):
     """A Kalman filter implementation for state space models."""
@@ -72,6 +93,14 @@ class KalmanFilter(Filter):
         self.V = V_pred - K @ H @ V_pred
 
         return self.mu, self.V
+
+    def _marginal(self):
+        A, Q, H, R = self.model.A, self.model.Q, self.model.H, self.model.R
+
+        mu_li = H @ A @ self.mu
+        var_li = (H @ A) @ self.V @ (H @ A).T + H @ Q @ H.T + R
+
+        return mu_li, var_li
 
 
 class ParticleFilter(Filter):
@@ -121,3 +150,6 @@ class ParticleFilter(Filter):
         ]
 
         return x_est, self.x_particles
+
+    def _marginal(self):
+        raise NotImplementedError
