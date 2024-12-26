@@ -29,18 +29,21 @@ class ModelIterator:
     def __init__(self, model: Model):
         self.model = model
 
-        self.x = model.x_0
+        self.next_x = model.x_0
         self.rng = model.rng
 
     def __iter__(self) -> "ModelIterator":
         return self
 
     def __next__(self) -> tuple[np.ndarray, np.ndarray]:
-        self.x = self.model.A @ self.x + self.rng.multivariate_normal(
-            np.zeros_like(self.x), self.model.Q
-        )
-        y = self.model.H @ self.x + self.rng.multivariate_normal(
-            np.zeros_like(self.model.H @ self.x), self.model.R
+        x = self.next_x
+        y = self.model.H @ x + self.rng.multivariate_normal(
+            np.zeros(self.model.H.shape[0]), self.model.R
         )
 
-        return self.x, y
+        # Update the iterator
+        self.next_x = self.model.A @ x + self.rng.multivariate_normal(
+            np.zeros_like(x), self.model.Q
+        )
+
+        return x, y
