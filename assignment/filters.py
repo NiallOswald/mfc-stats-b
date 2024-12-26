@@ -1,8 +1,8 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from .models import Model
+from .utils import MultivaraiateNormal
 from abc import ABC, abstractmethod
-from scipy.stats import norm
 
 
 class Filter(ABC):
@@ -100,7 +100,7 @@ class KalmanFilter(Filter):
         mu_li = H @ A @ self.mu
         var_li = (H @ A) @ self.V @ (H @ A).T + H @ Q @ H.T + R
 
-        return norm.logpdf(y, mu_li, var_li)
+        return MultivaraiateNormal.logpdf(y, mu_li, var_li)
 
 
 class ParticleFilter(Filter):
@@ -129,14 +129,7 @@ class ParticleFilter(Filter):
         )
 
         # Calculate weights
-        delta_obs = y[:, np.newaxis] - H @ x_particles_pred
-        log_w = -0.5 * np.einsum(
-            "ji,jk,ki->i",
-            delta_obs,
-            np.linalg.inv(R),
-            delta_obs,
-            optimize=True,
-        )
+        log_w = MultivaraiateNormal.logpdf(y, H @ x_particles_pred, R)
 
         W = np.exp(log_w - np.max(log_w))
 
@@ -152,4 +145,13 @@ class ParticleFilter(Filter):
         return x_est, self.x_particles
 
     def _marginal(self, y: np.ndarray) -> float:
-        raise NotImplementedError
+        A, Q, H, R = self.model.A, self.model.Q, self.model.H, self.model.R
+
+        x_particles_pred = (
+            A @ self.x_particles
+            + self.rng.multivariate_normal(
+                np.zeros(self.x_particles.shape[0]), Q, self.n_particles
+            ).T
+        )
+
+        return np.log(np.mean(MultivaraiateNormal.pdf(y, H @ x_particles_pred, R)))
