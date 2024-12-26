@@ -14,6 +14,7 @@ authors = [
     { name = "Niall Oswald", email = "niall.oswald20@imperial.ac.uk" },
 ]
 dependencies = [
+    "alive-progress",
     "matplotlib",
     "numpy",
 ]
