@@ -15,11 +15,11 @@ class Filter(ABC):
         self.rng = model.rng
         self._model_iter = iter(self.model)
 
-    def __iter__(self):
+    def __iter__(self) -> "Filter":
         return self
 
     @abstractmethod
-    def __next__(self):
+    def __next__(self) -> tuple[np.ndarray, np.ndarray]:
         """Advance to the next observation."""
         pass
 
@@ -49,7 +49,7 @@ class Filter(ABC):
         plt.show()
 
     @classmethod
-    def likelihood(cls, true_model: Model, model: Model, max_iter: int, *args):
+    def likelihood(cls, true_model: Model, model: Model, max_iter: int, *args) -> float:
         """Compute the log likelihood."""
         true_model_iter = iter(true_model)
         cls_filter = cls(model, *args)
@@ -63,7 +63,7 @@ class Filter(ABC):
         return log_li
 
     @abstractmethod
-    def _marginal(self, y):
+    def _marginal(self, y: np.ndarray) -> float:
         """Return the likelihood of the observation y at the next time step."""
         pass
 
@@ -78,7 +78,7 @@ class KalmanFilter(Filter):
 
         super().__init__(model)
 
-    def __next__(self):
+    def __next__(self) -> tuple[np.ndarray, np.ndarray]:
         _, y = next(self._model_iter)
 
         A, Q, H, R = self.model.A, self.model.Q, self.model.H, self.model.R
@@ -94,7 +94,7 @@ class KalmanFilter(Filter):
 
         return self.mu, self.V
 
-    def _marginal(self, y):
+    def _marginal(self, y: np.ndarray) -> float:
         A, Q, H, R = self.model.A, self.model.Q, self.model.H, self.model.R
 
         mu_li = H @ A @ self.mu
@@ -115,7 +115,7 @@ class ParticleFilter(Filter):
 
         super().__init__(model)
 
-    def __next__(self):
+    def __next__(self) -> tuple[np.ndarray, np.ndarray]:
         _, y = next(self._model_iter)
 
         A, Q, H, R = self.model.A, self.model.Q, self.model.H, self.model.R
@@ -151,5 +151,5 @@ class ParticleFilter(Filter):
 
         return x_est, self.x_particles
 
-    def _marginal(self):
+    def _marginal(self, y: np.ndarray) -> float:
         raise NotImplementedError
