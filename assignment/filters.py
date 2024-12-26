@@ -20,6 +20,7 @@ class Filter(ABC):
 
     @abstractmethod
     def __next__(self):
+        """Advance to the next observation."""
         pass
 
     @classmethod
@@ -55,16 +56,15 @@ class Filter(ABC):
 
         log_li = 0
         for i in range(max_iter):
-            _, y = next(true_model_iter)
-            mu_li, var_li = cls_filter._marginal()
-            log_li += np.log(norm(y, mu_li, var_li))
+            _, y = next(true_model_iter)  # Observation at current time step
+            log_li += cls_filter._marginal(y)  # Marginal based on last time step
             next(cls_filter)
 
         return log_li
 
     @abstractmethod
-    def _marginal(self):
-        """Return the mean and variance of the marginal distribution."""
+    def _marginal(self, y):
+        """Return the likelihood of the observation y at the next time step."""
         pass
 
 
@@ -94,13 +94,13 @@ class KalmanFilter(Filter):
 
         return self.mu, self.V
 
-    def _marginal(self):
+    def _marginal(self, y):
         A, Q, H, R = self.model.A, self.model.Q, self.model.H, self.model.R
 
         mu_li = H @ A @ self.mu
         var_li = (H @ A) @ self.V @ (H @ A).T + H @ Q @ H.T + R
 
-        return mu_li, var_li
+        return norm.logpdf(y, mu_li, var_li)
 
 
 class ParticleFilter(Filter):
