@@ -1,6 +1,6 @@
 """State space models for Kalman and particle filters."""
 
-import numpy as np
+import autograd.numpy as np
 from dataclasses import dataclass
 from typing import Callable
 
@@ -39,12 +39,12 @@ class ModelIterator:
     def __next__(self) -> tuple[np.ndarray, np.ndarray]:
         x = self.next_x
         y = self.model.H @ x + self.rng.multivariate_normal(
-            np.zeros(self.model.H.shape[0]), self.model.R
+            np.zeros(self.model.R.shape[0]), self.model.R
         )
 
         # Update the iterator
         self.next_x = self.model.A @ x + self.rng.multivariate_normal(
-            np.zeros_like(x), self.model.Q
+            np.zeros(self.model.Q.shape[0]), self.model.Q
         )
 
         return x, y

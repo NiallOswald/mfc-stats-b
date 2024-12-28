@@ -1,5 +1,5 @@
+import autograd.numpy as np
 import matplotlib.pyplot as plt
-import numpy as np
 from .models import Model
 from .utils import MultivaraiateNormal
 from abc import ABC, abstractmethod
@@ -12,7 +12,6 @@ class Filter(ABC):
         """Initialize the filter."""
         self.model = model
 
-        self.rng = model.rng
         self._model_iter = iter(self.model)
 
     def __iter__(self) -> "Filter":
@@ -57,7 +56,9 @@ class Filter(ABC):
         log_li = 0
         for i in range(max_iter):
             _, y = next(true_model_iter)  # Observation at current time step
-            log_li += cls_filter._marginal(y)  # Marginal based on last time step
+            log_li = log_li + cls_filter._marginal(
+                y
+            )  # Marginal based on last time step
             next(cls_filter)
 
         return log_li
@@ -106,12 +107,14 @@ class KalmanFilter(Filter):
 class ParticleFilter(Filter):
     """A particle filter implementation for state space models."""
 
-    def __init__(self, model: Model, particles_init: np.ndarray):
+    def __init__(self, model: Model, particles_init: np.ndarray, seed: int = None):
         """Initialise the particle filter."""
         self.x_particles = particles_init
         self.n_particles = particles_init.shape[1]
 
         self.log_w = np.zeros(self.n_particles)
+
+        self.rng = np.random.default_rng(seed)
 
         super().__init__(model)
 
@@ -123,9 +126,7 @@ class ParticleFilter(Filter):
         # Sample
         x_particles_pred = (
             A @ self.x_particles
-            + self.rng.multivariate_normal(
-                np.zeros(self.x_particles.shape[0]), Q, self.n_particles
-            ).T
+            + self.rng.multivariate_normal(np.zeros(Q.shape[0]), Q, self.n_particles).T
         )
 
         # Calculate weights
@@ -140,7 +141,7 @@ class ParticleFilter(Filter):
         # Resample
         self.x_particles = x_particles_pred[
             :, self.rng.choice(self.n_particles, self.n_particles, p=w)
-        ]
+        ]  # Not compatible with autograd
 
         return x_est, self.x_particles
 
@@ -149,9 +150,8 @@ class ParticleFilter(Filter):
 
         x_particles_pred = (
             A @ self.x_particles
-            + self.rng.multivariate_normal(
-                np.zeros(self.x_particles.shape[0]), Q, self.n_particles
-            ).T
+            + self.rng.multivariate_normal(np.zeros(Q.shape[0]), Q, self.n_particles).T
         )
 
+        # Take the mean of the likelihoods (unstable but works well)
         return np.log(np.mean(MultivaraiateNormal.pdf(y, H @ x_particles_pred, R)))
