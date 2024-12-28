@@ -1,8 +1,10 @@
 import autograd.numpy as np
 import matplotlib.pyplot as plt
-from .models import Model
+import scipy as sp
+from .models import Model, ModelGen
 from .utils import MultivaraiateNormal
 from abc import ABC, abstractmethod
+from autograd import grad
 
 
 class Filter(ABC):
@@ -67,6 +69,32 @@ class Filter(ABC):
     def _marginal(self, y: np.ndarray) -> float:
         """Return the likelihood of the observation y at the next time step."""
         pass
+
+    @classmethod
+    def fit(
+        cls,
+        data_model: Model,
+        model_gen: ModelGen,
+        params: np.ndarray,
+        filter_args: tuple,
+        model_iter: int = 1000,
+        use_autograd: bool = True,
+        **kwargs,
+    ) -> np.ndarray:
+        """Fit a model to the data."""
+
+        def f(x):
+            return -cls.likelihood(data_model, model_gen(x), model_iter, *filter_args)
+
+        if use_autograd:
+            fit_params = sp.optimize.minimize(f, params, jac=grad(f), **kwargs)
+        else:
+            fit_params = sp.optimize.minimize(f, params, **kwargs)
+
+        if not fit_params.success:
+            raise sp.optimize.OptimizeWarning(fit_params.message)
+
+        return fit_params.x
 
 
 class KalmanFilter(Filter):
