@@ -44,6 +44,7 @@ def main():
     plt.plot(k_vals, particle_li, label="Particle filter")
     plt.xlabel(r"$k$")
     plt.ylabel("log likelihood")
+    plt.title("Log likelihood for different values of $k$")
     plt.legend()
     plt.savefig("likelihood.png", dpi=300)
     plt.show()
