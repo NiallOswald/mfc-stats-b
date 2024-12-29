@@ -138,3 +138,27 @@ k_ballistic_model = ModelGen(
 simple_ballistic_model = ModelGenAuto.from_model_gen(
     k_ballistic_model, np.array([0.04])
 )
+
+resonator_model = ModelGen(
+    lambda x: np.zeros(2),  # x_0
+    lambda x: np.array(  # A
+        [
+            [np.cos(x[0]), np.sin(x[0]) / x[0]],
+            [-x[0] * np.sin(x[0]), np.cos(x[0])],
+        ]
+    ),
+    lambda x: np.array([[1.0, 0.0]]),  # H
+    lambda x: np.array(  # Q
+        [
+            [
+                x[1] * (x[0] - np.cos(x[0]) * np.sin(x[0])) / (2 * x[0] ** 3),
+                x[1] * np.sin(x[0]) ** 2 / (2 * x[0] ** 2),
+            ],
+            [
+                x[1] * np.sin(x[0]) ** 2 / (2 * x[0] ** 2),
+                x[1] * (x[0] + np.cos(x[0]) * np.sin(x[0])) / (2 * x[0]),
+            ],
+        ]
+    ),
+    lambda x: np.array([[1.0]]),  # R
+)  # x = [omega, q^c]
