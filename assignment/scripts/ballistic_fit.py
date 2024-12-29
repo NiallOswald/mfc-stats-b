@@ -1,18 +1,16 @@
 """Maximum likelihood estimation for a ballistic model."""
 
 import numpy as np
-from assignment.models import k_ballistic_model
+from assignment.models import simple_ballistic_model
 from assignment.filters import KalmanFilter, ParticleFilter
 
 MAX_ITER = 1000
 N_PARTICLES = 1000
 TRUE_K = 0.04
 
-base_model = k_ballistic_model(TRUE_K)
-
 
 def main():
-    true_model = base_model([TRUE_K])
+    true_model = simple_ballistic_model([TRUE_K])
 
     kalman_args = (3 * np.ones(4), 10 * np.eye(4))
     particle_args = (
@@ -21,7 +19,7 @@ def main():
 
     k = KalmanFilter.fit(
         true_model,
-        base_model,
+        simple_ballistic_model,
         np.array([0.03]),
         kalman_args,
         MAX_ITER,
@@ -30,7 +28,7 @@ def main():
 
     k = KalmanFilter.fit(
         true_model,
-        base_model,
+        simple_ballistic_model,
         np.array([0.03]),
         kalman_args,
         MAX_ITER,
@@ -42,7 +40,7 @@ def main():
 
     k = ParticleFilter.fit(
         true_model,
-        base_model,
+        simple_ballistic_model,
         np.array([0.03]),
         particle_args,
         MAX_ITER,

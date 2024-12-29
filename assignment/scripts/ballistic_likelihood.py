@@ -11,11 +11,9 @@ N_PARTICLES = 100
 TRUE_K = 0.04
 K_VALS = 100
 
-base_model = k_ballistic_model(TRUE_K)
-
 
 def main():
-    true_model = base_model([TRUE_K])
+    true_model = k_ballistic_model([TRUE_K])
 
     k_vals = np.linspace(0.5 * TRUE_K, 1.5 * TRUE_K, K_VALS)
 
@@ -23,14 +21,14 @@ def main():
     for i, k in enumerate(alive_it(k_vals, title="Calculating likelihoods...")):
         kalman_li[i] = KalmanFilter.likelihood(
             true_model,
-            base_model([k]),
+            k_ballistic_model([k]),
             MAX_ITER,
             3 * np.ones(4),
             10 * np.eye(4),
         )
         particle_li[i] = ParticleFilter.likelihood(
             true_model,
-            base_model([k]),
+            k_ballistic_model([k]),
             MAX_ITER,
             np.random.multivariate_normal(
                 true_model.x_0,

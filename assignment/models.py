@@ -57,8 +57,8 @@ class ModelGen:
     x_0: Callable[[np.ndarray], np.ndarray]
     A: Callable[[np.ndarray], np.ndarray]
     H: Callable[[np.ndarray], np.ndarray]
-    Q: np.ndarray
-    R: np.ndarray
+    Q: Callable[[np.ndarray], np.ndarray]
+    R: Callable[[np.ndarray], np.ndarray]
     seed: int = 1234
 
     def __call__(self, params: np.ndarray) -> Model:
@@ -67,8 +67,8 @@ class ModelGen:
             self.x_0(params),
             self.A(params),
             self.H(params),
-            self.Q,
-            self.R,
+            self.Q(params),
+            self.R(params),
             self.seed,
         )
 
@@ -76,36 +76,65 @@ class ModelGen:
         raise NotImplementedError("Cannot iterate over a model generator.")
 
 
-def k_ballistic_model(k: float) -> ModelGen:
-    """A parameterized linear ballistic model."""
-    return ModelGen(
-        lambda params: np.zeros(4),  # x_0
-        lambda params: np.array(  # A
-            [
-                [1.0, 0.0, params[0], 0.0],
-                [0.0, 1.0, 0.0, params[0]],
-                [0.0, 0.0, 0.99, 0.0],
-                [0.0, 0.0, 0.0, 0.99],
-            ]
-        ),
-        lambda params: np.array(  # H
-            [
-                [1.0, 0.0, 0.0, 0.0],
-                [0.0, 1.0, 0.0, 0.0],
-            ]
-        ),
-        np.array(  # Q
-            [
-                [k**3 / 3, 0.0, k**2 / 2, 0.0],
-                [0.0, k**3 / 3, 0.0, k**2 / 2],
-                [k**2 / 2, 0.0, k, 0.0],
-                [0.0, k**2 / 2, 0.0, k],
-            ]
-        ),
-        np.array(  # R
-            [
-                [1.0, 0.0],
-                [0.0, 1.0],
-            ]
-        ),
-    )
+class ModelGenAuto(ModelGen):
+    """An autograd-compatible linear Gaussian state space model generator."""
+
+    def __init__(
+        self,
+        x_0: Callable,
+        A: Callable,
+        H: Callable,
+        Q: np.ndarray,
+        R: np.ndarray,
+        seed: int = 1234,
+    ):
+        super().__init__(x_0, A, H, lambda x: Q, lambda x: R, seed)
+
+    @classmethod
+    def from_model_gen(cls, model_gen: ModelGen, params: np.ndarray) -> "ModelGenAuto":
+        """Generate an autograd-compatible model generator from a model generator."""
+        return cls(
+            model_gen.x_0,
+            model_gen.A,
+            model_gen.H,
+            model_gen.Q(params),
+            model_gen.R(params),
+            model_gen.seed,
+        )
+
+
+k_ballistic_model = ModelGen(
+    lambda x: np.zeros(4),  # x_0
+    lambda x: np.array(  # A
+        [
+            [1.0, 0.0, x[0], 0.0],
+            [0.0, 1.0, 0.0, x[0]],
+            [0.0, 0.0, 0.99, 0.0],
+            [0.0, 0.0, 0.0, 0.99],
+        ]
+    ),
+    lambda x: np.array(  # H
+        [
+            [1.0, 0.0, 0.0, 0.0],
+            [0.0, 1.0, 0.0, 0.0],
+        ]
+    ),
+    lambda x: np.array(  # Q
+        [
+            [x[0] ** 3 / 3, 0.0, x[0] ** 2 / 2, 0.0],
+            [0.0, x[0] ** 3 / 3, 0.0, x[0] ** 2 / 2],
+            [x[0] ** 2 / 2, 0.0, x[0], 0.0],
+            [0.0, x[0] ** 2 / 2, 0.0, x[0]],
+        ]
+    ),
+    lambda x: np.array(  # R
+        [
+            [1.0, 0.0],
+            [0.0, 1.0],
+        ]
+    ),
+)  # x = [k]
+
+simple_ballistic_model = ModelGenAuto.from_model_gen(
+    k_ballistic_model, np.array([0.04])
+)

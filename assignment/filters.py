@@ -1,7 +1,7 @@
 import autograd.numpy as np
 import matplotlib.pyplot as plt
 import scipy as sp
-from .models import Model, ModelGen
+from .models import Model, ModelGen, ModelGenAuto
 from .utils import MultivaraiateNormal
 from abc import ABC, abstractmethod
 from autograd import grad
@@ -82,6 +82,9 @@ class Filter(ABC):
         **kwargs,
     ) -> np.ndarray:
         """Fit a model to the data."""
+
+        if not isinstance(model_gen, ModelGenAuto) and use_autograd:
+            raise ValueError("Autograd can only be used with AutoModelGen.")
 
         def f(x):
             return -cls.likelihood(data_model, model_gen(x), model_iter, *filter_args)

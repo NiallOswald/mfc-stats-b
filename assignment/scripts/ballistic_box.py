@@ -11,11 +11,9 @@ N_PARTICLES = 1000
 N_FILTERS = 10
 TRUE_K = 0.04
 
-base_model = k_ballistic_model(TRUE_K)
-
 
 def main():
-    true_model = base_model([TRUE_K])
+    true_model = k_ballistic_model([TRUE_K])
 
     particle_args = (
         np.random.multivariate_normal(true_model.x_0, 0.1 * np.eye(4), N_PARTICLES).T,
@@ -25,7 +23,7 @@ def main():
     for i in alive_it(range(N_FILTERS), title="Running filters..."):
         k_estimates[i] = ParticleFilter.fit(
             true_model,
-            base_model,
+            k_ballistic_model,  # Full model may encounter warnings
             np.array([0.03]),
             particle_args,
             MAX_ITER,
